@@ -3,7 +3,7 @@ import { useState } from "react";
 export default function App() {
   return (
     <div className="p-8">
-      <h1 className="mb-6 text-2xl font-bold">Password Strength Checker</h1>
+      <h1 className="mb-6 text-2xl font-bold">비밀번호 보안 체크</h1>
       <PasswordChecker />
     </div>
   );
@@ -35,7 +35,7 @@ function PasswordInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-full rounded border p-2"
-      placeholder="Enter password"
+      placeholder="비밀번호를 입력하세요."
     />
   );
 }
@@ -55,7 +55,7 @@ function StrengthIndicator({ strength }: { strength: PasswordStrength }) {
           style={{ width: getStrengthPercentage(strength) }}
         />
       </div>
-      <p className="mt-1 text-sm capitalize">{strength} password</p>
+      <p className="mt-1 text-sm">{getStrengthText(strength)} 비밀번호</p>
     </div>
   );
 }
@@ -63,19 +63,19 @@ function StrengthIndicator({ strength }: { strength: PasswordStrength }) {
 function RequirementsList({ password }: { password: string }) {
   const requirements = [
     {
-      label: "At least 8 characters",
+      label: "최소 8자 이상",
       met: hasMinimumLength(password),
     },
     {
-      label: "Contains numbers",
+      label: "숫자 포함",
       met: hasNumbers(password),
     },
     {
-      label: "Contains specail characters",
+      label: "특수문자 포함",
       met: hasSpecialCharacters(password),
     },
     {
-      label: "Contains uppercase & lowercase",
+      label: "알파벳 대소문자 포함",
       met: hasMixedCase(password),
     },
   ];
@@ -101,7 +101,7 @@ function RequirementItem({ label, met }: { label: string; met: boolean }) {
   );
 }
 
-// Utility functions - each handling one specific validation
+// 유틸리티 함수 - validations
 function hasMinimumLength(password: string): boolean {
   return password.length >= 8;
 }
@@ -118,7 +118,7 @@ function hasMixedCase(password: string): boolean {
   return /[a-z]/.test(password) && /[A-Z]/.test(password);
 }
 
-// Types and evaluation functions
+// 비밀번호 평가 함수
 type PasswordStrength = "weak" | "medium" | "strong";
 
 function evaluatePasswordStrength(password: string): PasswordStrength {
@@ -144,4 +144,14 @@ function getStrengthPercentage(strength: PasswordStrength): string {
   };
 
   return percentages[strength];
+}
+
+function getStrengthText(strength: PasswordStrength): string {
+  const strengthTexts = {
+    weak: "약한",
+    medium: "보통",
+    strong: "강한",
+  };
+
+  return strengthTexts[strength];
 }
