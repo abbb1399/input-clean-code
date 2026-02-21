@@ -1,51 +1,82 @@
-# React + TypeScript + Vite
+# 🔐 비밀번호 보안 체크 — SRP 예제
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## SRP란?
 
-Currently, two official plugins are available:
+**단일 책임 원칙(Single Responsibility Principle, SRP)** 은 SOLID 원칙 중 첫 번째로,
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+> "하나의 모듈(함수, 클래스, 컴포넌트)은 **하나의 책임**만 가져야 한다."
 
-## Expanding the ESLint configuration
+는 개념입니다.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+React 컴포넌트 관점에서 SRP를 지킨다는 것은, **각 컴포넌트가 하나의 역할만 담당**하도록 설계하는 것을 의미합니다.
 
-- Configure the top-level `parserOptions` property like this:
+---
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## 📂 파일 구조 및 책임 분리
+
+이 예제는 비밀번호 입력 → 강도 평가 → UI 표시의 흐름을 각 컴포넌트와 함수로 분리했습니다.
+
+```
+App
+└── PasswordChecker          # 상태 관리 및 조합 담당
+    ├── PasswordInput        # 입력 UI만 담당
+    ├── StrengthIndicator    # 강도 시각화만 담당
+    └── RequirementsList     # 요구사항 목록 렌더링 담당
+        └── RequirementItem  # 개별 항목 표시만 담당
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+---
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+## 🧩 컴포넌트별 역할
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
-# input-clean-code
+### `PasswordChecker`
+- `useState`로 비밀번호 상태를 관리하고, 하위 컴포넌트들을 조합합니다.
+- 직접 UI를 그리지 않고 **상태와 구성(orchestration)만** 책임집니다.
+
+### `PasswordInput`
+- `value`와 `onChange`만 받아 **입력 필드 렌더링만** 담당합니다.
+- 비밀번호 평가 로직을 전혀 알지 못합니다.
+
+### `StrengthIndicator`
+- `strength` 값을 받아 **프로그레스 바와 텍스트로 시각화**만 합니다.
+- 어떻게 강도가 계산됐는지는 관심 없습니다.
+
+### `RequirementsList` / `RequirementItem`
+- 요구사항 배열을 순회해 **각 항목을 표시**하는 역할만 합니다.
+- 충족 여부(`met`) 판단은 유틸리티 함수에 위임합니다.
+
+---
+
+## 🛠️ 유틸리티 함수 — 순수 함수로 분리
+
+검증 로직은 컴포넌트 밖에서 **독립적인 순수 함수**로 분리했습니다.
+
+| 함수 | 역할 |
+|---|---|
+| `hasMinimumLength` | 8자 이상 여부 확인 |
+| `hasNumbers` | 숫자 포함 여부 확인 |
+| `hasSpecialCharacters` | 특수문자 포함 여부 확인 |
+| `hasMixedCase` | 대소문자 혼합 여부 확인 |
+| `evaluatePasswordStrength` | 4가지 조건으로 강도(`weak` / `medium` / `strong`) 산출 |
+| `getStrengthPercentage` | 강도 → 프로그레스 바 너비 변환 |
+| `getStrengthText` | 강도 → 한글 텍스트 변환 |
+
+> 유틸리티 함수들은 UI에 의존하지 않기 때문에 **테스트 작성이 쉽고**, 다른 곳에서도 재사용할 수 있습니다.
+
+---
+
+## ❌ SRP를 지키지 않으면?
+
+SRP 없이 하나의 컴포넌트에 모든 로직을 몰아넣으면 아래 문제가 생깁니다.
+
+- **가독성 저하**: 컴포넌트가 길어져 무슨 역할인지 파악하기 어렵습니다.
+- **수정 범위 증가**: 요구사항이 하나 바뀌어도 여러 곳에 영향이 생깁니다.
+- **재사용 불가**: 강도 바만 다른 곳에 쓰고 싶어도 꺼내기 어렵습니다.
+- **테스트 어려움**: 하나의 함수가 너무 많은 일을 해서 단위 테스트를 짜기 힘듭니다.
+
+---
+
+## ✅ 핵심 정리
+
+> **컴포넌트를 볼 때 "이 컴포넌트는 한 문장으로 역할을 설명할 수 있는가?"** 를 스스로에게 물어보세요.  
+> 설명이 길어지거나 "그리고"가 들어간다면, 분리를 고민할 때입니다.
